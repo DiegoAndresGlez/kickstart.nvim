@@ -242,12 +242,21 @@ if not (vim.uv or vim.loop).fs_stat(lazypath) then
 end ---@diagnostic disable-next-line: undefined-field
 vim.opt.rtp:prepend(lazypath)
 
--- Instead of running nvim --listen ./godothost, nvim checks if its in a .godot dir
-local gdproject = io.open(vim.fn.getcwd() .. '/project.godot', 'r')
-if gdproject then
-  io.close(gdproject)
-  vim.fn.serverstart './godothost'
+if vim.fn.filereadable(vim.fn.getcwd() .. '/project.godot') == 1 then
+  local addr = './godot.pipe'
+  if vim.fn.has 'win32' == 1 then
+    -- Windows can't pipe so use localhost. Make sure this is configured in Godot
+    addr = '127.0.0.1:6004'
+  end
+  vim.fn.serverstart(addr)
 end
+
+-- Applies only on Linux. Instead of running nvim --listen ./godothost, nvim checks if its in a .godot dir
+-- local gdproject = io.open(vim.fn.getcwd() .. '/project.godot', 'r')
+-- if gdproject then
+--   io.close(gdproject)
+--   vim.fn.serverstart './godothost'
+-- end
 
 -- [[ Configure and install plugins ]]
 --
@@ -686,7 +695,15 @@ require('lazy').setup({
       capabilities = vim.tbl_deep_extend('force', capabilities, require('cmp_nvim_lsp').default_capabilities())
 
       -- For GDScript
-      require('lspconfig').gdscript.setup(capabilities)
+      local gdscript_config = {
+        capabilities = capabilities,
+        settings = {},
+      }
+      if vim.fn.has 'win32' == 1 then
+        -- Windows specific. Requires nmap installed. Source https://www.youtube.com/watch?v=B6UahV8gVo0
+        gdscript_config['cmd'] = { 'ncat', '127.0.0.1', '6012' }
+      end
+      require('lspconfig').gdscript.setup(gdscript_config)
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
@@ -701,10 +718,10 @@ require('lazy').setup({
         -- clangd = {},
         -- gopls = {},
         -- pyright = {},
+        -- gopls = {},
         rust_analyzer = {},
-        gopls = {},
         pylsp = {},
-        ts_ls = {},
+        -- ts_ls = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
@@ -926,6 +943,18 @@ require('lazy').setup({
     end,
   },
 
+  {
+    -- Colorscheme: https://github.com/Shatur/neovim-ayu
+    'Shatur/neovim-ayu',
+    config = function()
+      require('ayu').setup {
+        mirage = false, -- Set to `true` to use `mirage` variant instead of `dark` for dark background.
+        terminal = true, -- Set to `false` to let terminal manage its own colors.
+        overrides = {}, -- A dictionary of group names, each associated with a dictionary of parameters (`bg`, `fg`, `sp` and `style`) and colors in hex.
+      }
+    end,
+  },
+
   { -- You can easily change to a different colorscheme.
     -- Change the name of the colorscheme plugin below, and then
     -- change the command in the config to whatever the name of that colorscheme is.
@@ -944,7 +973,7 @@ require('lazy').setup({
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
+      vim.cmd.colorscheme 'ayu-dark'
     end,
   },
 
