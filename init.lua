@@ -720,6 +720,12 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'lua_ls', -- Lua Language server
         'stylua', -- Used to format Lua code
+        'gdscript-formatter',
+        'csharpier',
+        'google-java-format',
+        'isort',
+        'black',
+        'js_beautify',
         -- You can add other tools here that you want Mason to install
       })
 
@@ -795,14 +801,14 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        -- gdscript = { 'gdscript-formatter' }, -- https://github.com/GDQuest/GDScript-formatter
+        csharp = { 'csharpier' },
+        java = { 'google-java-format' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
+        javascript = { 'prettierd', 'prettier', stop_after_first = true },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
-        javascript = { 'prettierd', 'prettier', stop_after_first = true },
-        typescript = { 'prettierd', 'prettier', stop_after_first = true },
-        typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
-        javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
       },
     },
   },
