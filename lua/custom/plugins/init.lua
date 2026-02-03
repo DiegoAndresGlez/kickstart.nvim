@@ -34,6 +34,9 @@ return {
         end,
       }
     end,
+
+    -- GDScript enable --
+    vim.lsp.enable 'gdscript',
   },
 
   -- Filetype-specific settings for TypeScript files

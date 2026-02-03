@@ -164,6 +164,9 @@ vim.o.scrolloff = 10
 -- See `:help 'confirm'`
 vim.o.confirm = true
 
+-- For habamax vim-godot plugin
+vim.g.godot_executable = 'godot' -- Path to godot executable (this is a symlink to the actual path)
+
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
@@ -230,27 +233,27 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function() vim.hl.on_yank() end,
 })
 
--- GDScript 4 spaces per tab
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'gdscript',
-  callback = function()
-    vim.opt_local.tabstop = 4
-    vim.opt_local.shiftwidth = 4
-    vim.opt_local.softtabstop = 4
-    vim.opt_local.expandtab = true
-  end,
-})
-
--- GDShader 4 spaces per tab
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'gdshader',
-  callback = function()
-    vim.opt_local.tabstop = 4
-    vim.opt_local.shiftwidth = 4
-    vim.opt_local.softtabstop = 4
-    vim.opt_local.expandtab = true
-  end,
-})
+-- -- GDScript 4 spaces per tab
+-- vim.api.nvim_create_autocmd('FileType', {
+--   pattern = 'gdscript',
+--   callback = function()
+--     vim.opt_local.tabstop = 4
+--     vim.opt_local.shiftwidth = 4
+--     vim.opt_local.softtabstop = 4
+--     vim.opt_local.expandtab = true
+--   end,
+-- })
+--
+-- -- GDShader 4 spaces per tab
+-- vim.api.nvim_create_autocmd('FileType', {
+--   pattern = 'gdshader',
+--   callback = function()
+--     vim.opt_local.tabstop = 4
+--     vim.opt_local.shiftwidth = 4
+--     vim.opt_local.softtabstop = 4
+--     vim.opt_local.expandtab = true
+--   end,
+-- })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -265,14 +268,14 @@ end
 local rtp = vim.opt.rtp
 rtp:prepend(lazypath)
 
-if vim.fn.filereadable(vim.fn.getcwd() .. '/project.godot') == 1 then
-  local addr = './godot.pipe'
-  if vim.fn.has 'win32' == 1 then
-    -- Windows can't pipe so use localhost. Make sure this is configured in Godot
-    addr = '127.0.0.1:6004'
-  end
-  vim.fn.serverstart(addr)
-end
+-- if vim.fn.filereadable(vim.fn.getcwd() .. '/project.godot') == 1 then
+--   local addr = './godot.pipe'
+--   if vim.fn.has 'win32' == 1 then
+--     -- Windows can't pipe so use localhost. Make sure this is configured in Godot
+--     addr = '127.0.0.1:6004'
+--   end
+--   vim.fn.serverstart(addr)
+-- end
 
 -- Applies only on Linux. Instead of running nvim --listen ./godothost, nvim checks if its in a .godot dir
 -- local gdproject = io.open(vim.fn.getcwd() .. '/project.godot', 'r')
@@ -521,6 +524,24 @@ require('lazy').setup({
       { 'mason-org/mason.nvim', opts = {} },
       'WhoIsSethDaniel/mason-tool-installer.nvim',
 
+      {
+        'mason-org/mason-lspconfig.nvim',
+        opts = {
+          ensure_installed = {}, -- explicitly set to an empty table (Kickstart populates installs via mason-tool-installer)
+          automatic_installation = false,
+          handlers = {
+            function(server_name)
+              local server = servers[server_name] or {}
+              -- This handles overriding only values explicitly passed
+              -- by the server configuration above. Useful when disabling
+              -- certain features of an LSP (for example, turning off formatting for ts_ls)
+              server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
+              require('lspconfig')[server_name].setup(server)
+            end,
+          },
+        },
+      },
+
       -- Useful status updates for LSP.
       { 'j-hui/fidget.nvim', opts = {} },
 
@@ -650,38 +671,36 @@ require('lazy').setup({
         },
       }
 
-
-
       -- Godot LSP setup
       -- Source: https://www.reddit.com/r/neovim/comments/13ski66/neovim_configuration_for_godot_4_lsp_as_simple_as/
-      
-        -- LSP servers and clients are able to communicate to each other what features they support.
+
+      -- LSP servers and clients are able to communicate to each other what features they support.
       --  By default, Neovim doesn't support everything that is in the LSP specification.
       --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
       --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- For GDScript
-      local gdscript_config = {
-        capabilities = capabilities,
-        settings = {},
-      }
-      if vim.fn.has 'win32' == 1 then
-        -- Windows specific. Requires nmap installed. Source https://www.youtube.com/watch?v=B6UahV8gVo0
-        gdscript_config['cmd'] = { 'ncat', '127.0.0.1', '6012' }
-      end
-      require('lspconfig').gdscript.setup(gdscript_config)
+      -- local gd_capabilities = vim.lsp.protocol.make_client_capabilities()
+      -- gd_capabilities = vim.tbl_deep_extend('force', gd_capabilities, require('cmp_nvim_lsp').default_capabilities())
+      -- vim.lsp.config.gdscript.setup(gd_capabilities)
+
+      -- if vim.fn.has 'win32' == 1 then
+      --   -- Windows specific. Requires nmap installed. Source https://www.youtube.com/watch?v=B6UahV8gVo0
+      --   gdscript_config['cmd'] = { 'ncat', '127.0.0.1', '6012' }
+      -- end
 
       -- Enable the following language servers
       --  Feel free to add/remove any LSPs that you want here. They will automatically be installed.
       --  See `:help lsp-config` for information about keys and how to configure
       local servers = {
+        ts_ls = {},
         -- clangd = {},
         -- gopls = {},
         -- pyright = {},
         -- gopls = {},
-        rust_analyzer = {},
-        pylsp = {},
+        -- rust_analyzer = {},
+        -- pylsp = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         -- Some languages (like typescript) have entire language plugins that can be useful:
         --    https://github.com/pmizio/typescript-tools.nvim
@@ -739,6 +758,11 @@ require('lazy').setup({
       })
       vim.lsp.enable 'lua_ls'
     end,
+  },
+
+  {
+    'habamax/vim-godot',
+    event = 'VimEnter',
   },
 
   { -- Autoformat
@@ -951,8 +975,9 @@ require('lazy').setup({
 
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
+    build = ':TSUpdate',
     config = function()
-      local filetypes = { 
+      local filetypes = {
         'bash',
         'c',
         'cpp',
@@ -978,11 +1003,26 @@ require('lazy').setup({
         'gdshader',
         'godot_resource',
       }
-      require('nvim-treesitter').install(filetypes)
-      vim.api.nvim_create_autocmd('FileType', {
-        pattern = filetypes,
-        callback = function() vim.treesitter.start() end,
-      })
+
+      require('nvim-treesitter.config').setup {
+        ensure_installed = filetypes,
+
+        highlight = {
+          enable = true,
+        },
+
+        indent = {
+          enable = true,
+          -- disable = { 'gdscript' }, # Comment for treesitter's gdscript config
+        },
+      }
+
+      -- require('nvim-treesitter').install(filetypes)
+      --
+      -- vim.api.nvim_create_autocmd('FileType', {
+      --   pattern = filetypes,
+      --   callback = function() vim.treesitter.start() end,
+      -- })
     end,
   },
 
