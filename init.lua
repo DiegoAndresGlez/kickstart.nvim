@@ -419,6 +419,9 @@ require('lazy').setup({
       -- [[ Configure Telescope ]]
       -- See `:help telescope` and `:help telescope.setup()`
       require('telescope').setup {
+        defaults = {
+          log_level = 'debug',
+        },
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         --
@@ -441,7 +444,17 @@ require('lazy').setup({
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
+      vim.keymap.set(
+        'n',
+        '<leader>sf',
+        -- builtin.find_files(),
+        function()
+          require('telescope.builtin').find_files {
+            file_ignore_patterns = { '%.svg$' }, -- Hacky fix to crash ignore svg files
+          }
+        end,
+        { desc = '[S]earch [F]iles' }
+      )
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set({ 'n', 'v' }, '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
@@ -720,12 +733,10 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'lua_ls', -- Lua Language server
         'stylua', -- Used to format Lua code
-        'gdscript-formatter',
         'csharpier',
         'google-java-format',
         'isort',
         'black',
-        'js_beautify',
         -- You can add other tools here that you want Mason to install
       })
 
@@ -909,12 +920,14 @@ require('lazy').setup({
   {
     -- Colorscheme: https://github.com/Shatur/neovim-ayu
     'Shatur/neovim-ayu',
+    priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
       require('ayu').setup {
         mirage = false, -- Set to `true` to use `mirage` variant instead of `dark` for dark background.
-        terminal = true, -- Set to `false` to let terminal manage its own colors.
+        terminal = false, -- Set to `false` to let terminal manage its own colors.
         overrides = {}, -- A dictionary of group names, each associated with a dictionary of parameters (`bg`, `fg`, `sp` and `style`) and colors in hex.
       }
+      vim.cmd.colorscheme 'ayu-dark'
     end,
   },
 
@@ -924,7 +937,6 @@ require('lazy').setup({
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
     'folke/tokyonight.nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
       ---@diagnostic disable-next-line: missing-fields
       require('tokyonight').setup {
@@ -936,7 +948,7 @@ require('lazy').setup({
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'ayu-dark'
+      -- vim.cmd.colorscheme 'tokyonight-storm'
     end,
   },
 
