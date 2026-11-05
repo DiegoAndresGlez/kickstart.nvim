@@ -233,28 +233,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function() vim.hl.on_yank() end,
 })
 
--- -- GDScript 4 spaces per tab
--- vim.api.nvim_create_autocmd('FileType', {
---   pattern = 'gdscript',
---   callback = function()
---     vim.opt_local.tabstop = 4
---     vim.opt_local.shiftwidth = 4
---     vim.opt_local.softtabstop = 4
---     vim.opt_local.expandtab = true
---   end,
--- })
---
--- -- GDShader 4 spaces per tab
--- vim.api.nvim_create_autocmd('FileType', {
---   pattern = 'gdshader',
---   callback = function()
---     vim.opt_local.tabstop = 4
---     vim.opt_local.shiftwidth = 4
---     vim.opt_local.softtabstop = 4
---     vim.opt_local.expandtab = true
---   end,
--- })
-
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -694,6 +672,28 @@ require('lazy').setup({
       local capabilities = require('blink.cmp').get_lsp_capabilities()
 
       -- For GDScript
+      -- Source: https://simondalvai.org/blog/godot-neovim/
+      -- paths to check for project.godot file
+      local paths_to_check = { '/', '/../' }
+      local is_godot_project = false
+      local godot_project_path = ''
+      local cwd = vim.fn.getcwd()
+
+      -- iterate over paths and check
+      for key, value in pairs(paths_to_check) do
+        if vim.uv.fs_stat(cwd .. value .. 'project.godot') then
+          is_godot_project = true
+          godot_project_path = cwd .. value
+          break
+        end
+      end
+
+      -- check if server is already running in godot project path
+      local is_server_running = vim.uv.fs_stat(godot_project_path .. '/server.pipe')
+      -- start server, if not already running
+      if is_godot_project and not is_server_running then vim.fn.serverstart(godot_project_path .. '/server.pipe') end
+
+      -- For GDScript
       -- local gd_capabilities = vim.lsp.protocol.make_client_capabilities()
       -- gd_capabilities = vim.tbl_deep_extend('force', gd_capabilities, require('cmp_nvim_lsp').default_capabilities())
       -- vim.lsp.config.gdscript.setup(gd_capabilities)
@@ -708,9 +708,17 @@ require('lazy').setup({
       --  See `:help lsp-config` for information about keys and how to configure
       local servers = {
         ts_ls = {},
+        gdscript = {},
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {
+          settings = {
+            python = {
+              venvPath = '.',
+              venv = '.venv',
+            },
+          },
+        },
         -- gopls = {},
         -- rust_analyzer = {},
         -- pylsp = {},
@@ -735,6 +743,7 @@ require('lazy').setup({
         'stylua', -- Used to format Lua code
         'csharpier',
         'google-java-format',
+        'pyright',
         'isort',
         'black',
         -- You can add other tools here that you want Mason to install
@@ -816,7 +825,7 @@ require('lazy').setup({
         csharp = { 'csharpier' },
         java = { 'google-java-format' },
         -- Conform can also run multiple formatters sequentially
-        python = { 'isort', 'black' },
+        python = { 'ruff', 'isort', 'black', stop_after_first = true },
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
@@ -918,6 +927,71 @@ require('lazy').setup({
   },
 
   {
+    'rebelot/kanagawa.nvim',
+    -- priority = 1000,
+    config = function()
+      -- Default options:
+      require('kanagawa').setup {
+        compile = false, -- enable compiling the colorscheme
+        undercurl = true, -- enable undercurls
+        commentStyle = { italic = true },
+        functionStyle = {},
+        keywordStyle = { italic = true },
+        statementStyle = { bold = true },
+        typeStyle = {},
+        transparent = true, -- do not set background color
+        dimInactive = false, -- dim inactive window `:h hl-NormalNC`
+        terminalColors = true, -- define vim.g.terminal_color_{0,17}
+        colors = { -- add/modify theme and palette colors
+          palette = {},
+          theme = { wave = {}, lotus = {}, dragon = {}, all = {} },
+        },
+        overrides = function(colors) -- add/modify highlights
+          return {}
+        end,
+        theme = 'wave', -- Load "wave" theme
+        background = { -- map the value of 'background' option to a theme
+          dark = 'wave', -- try "dragon" !
+          light = 'lotus',
+        },
+      }
+      -- vim.cmd.colorscheme 'kanagawa'
+    end,
+  },
+
+  {
+    'ellisonleao/gruvbox.nvim',
+    -- priority = 1000,
+    config = function()
+      require('gruvbox').setup {
+        terminal_colors = true, -- add neovim terminal colors
+        undercurl = true,
+        underline = true,
+        bold = true,
+        italic = {
+          strings = true,
+          emphasis = true,
+          comments = true,
+          operators = false,
+          folds = true,
+        },
+        strikethrough = true,
+        invert_selection = false,
+        invert_signs = false,
+        invert_tabline = false,
+        inverse = true, -- invert background for search, diffs, statuslines and errors
+        contrast = '', -- can be "hard", "soft" or empty string
+        palette_overrides = {},
+        overrides = {},
+        dim_inactive = false,
+        transparent_mode = true,
+      }
+      -- vim.cmd.colorscheme 'gruvbox'
+    end,
+    opts = ...,
+  },
+
+  {
     -- Colorscheme: https://github.com/Shatur/neovim-ayu
     'Shatur/neovim-ayu',
     priority = 1000, -- Make sure to load this before all the other start plugins.
@@ -927,7 +1001,7 @@ require('lazy').setup({
         terminal = false, -- Set to `false` to let terminal manage its own colors.
         overrides = {}, -- A dictionary of group names, each associated with a dictionary of parameters (`bg`, `fg`, `sp` and `style`) and colors in hex.
       }
-      vim.cmd.colorscheme 'ayu-dark'
+      vim.cmd.colorscheme 'ayu'
     end,
   },
 
@@ -1010,6 +1084,9 @@ require('lazy').setup({
         'xml',
         'diff',
         'html',
+        'css',
+        'scss',
+        'less',
         'lua',
         'luadoc',
         'markdown',
@@ -1031,8 +1108,17 @@ require('lazy').setup({
 
         indent = {
           enable = true,
-          -- disable = { 'gdscript' }, # Comment for treesitter's gdscript config
+          -- disable = { 'gdscript' }, -- Comment for treesitter's gdscript config
         },
+
+        -- automatic_installation = false, -- Don't install new language on opening file to open nvim faster
+
+        -- Disable language if file size is greater than 100kb to open nvim faster
+        -- disable = function(lang, buf)
+        --   local max_filesize = 100 * 1024 -- 100 KB
+        --   local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
+        --   if ok and stats and stats.size > max_filesize then return true end
+        -- end,
       }
 
       -- require('nvim-treesitter').install(filetypes)
